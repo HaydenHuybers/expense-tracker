@@ -1,0 +1,27 @@
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="fw-bold text-primary mb-0">
+      <i class="bi bi-list-ul"></i> Expenses
+    </h2>
+    <a routerLink="/add" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle"></i> Add Expense
+    </a>
+  </div>
+
+  @if (service.expenses().length === 0) {
+    <div class="alert alert-info">
+      No expenses yet. <a routerLink="/add">Add one!</a>
+    </div>
+  } @else {
+    <div class="row g-3">
+      @for (expense of service.expenses(); track expense.id) {
+        <div class="col-12 col-md-6 col-xl-4">
+          <app-expense-item
+            [expense]="expense"
+            (deleteExpense)="onDelete($event)"
+          />
+        </div>
+      }
+    </div>
+  }
+</div>

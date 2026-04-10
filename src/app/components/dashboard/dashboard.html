@@ -1,0 +1,63 @@
+<div class="container py-4">
+  <h2 class="mb-4 fw-bold text-primary">
+    <i class="bi bi-speedometer2"></i> Dashboard
+  </h2>
+
+  <div class="row g-3 mb-4">
+    <!-- Total Expenses -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card text-white bg-primary h-100 shadow-sm">
+        <div class="card-body">
+          <h6 class="card-title text-uppercase small">Total Expenses</h6>
+          <p class="card-text fs-4 fw-bold">
+            {{ service.totalExpense() | currency }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Number of Transactions -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card text-white bg-success h-100 shadow-sm">
+        <div class="card-body">
+          <h6 class="card-title text-uppercase small">Transactions</h6>
+          <p class="card-text fs-4 fw-bold">{{ service.transactionCount() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Highest Expense -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card text-white bg-danger h-100 shadow-sm">
+        <div class="card-body">
+          <h6 class="card-title text-uppercase small">Highest Expense</h6>
+          <p class="card-text fs-4 fw-bold">
+            {{ service.highestExpense() | currency }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Average Expense -->
+    <div class="col-sm-6 col-lg-3">
+      <div class="card text-white bg-warning h-100 shadow-sm">
+        <div class="card-body">
+          <h6 class="card-title text-uppercase small">Average Expense</h6>
+          <p class="card-text fs-4 fw-bold">
+            {{ service.averageExpense() | currency }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="d-flex gap-2 flex-wrap">
+    <a routerLink="/add" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> Add Expense
+    </a>
+    <a routerLink="/expenses" class="btn btn-outline-secondary">
+      <i class="bi bi-list-ul"></i> View Expenses
+    </a>
+  </div>
+</div>
