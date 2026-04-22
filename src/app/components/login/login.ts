@@ -38,7 +38,18 @@ import { AuthService } from '../../services/auth-service';
 
         <mat-card-content>
           @if (authService.error()) {
-            <div class="error-message">{{ authService.error() }}</div>
+            @if (authService.error()?.includes('No account found')) {
+              <div class="error-message no-account-error">
+                <strong>Account Not Found</strong>
+                <p>{{ authService.error() }}</p>
+                <p class="create-account-prompt">
+                  Don't have an account yet?
+                  <a routerLink="/register" class="create-link">Create one now</a>
+                </p>
+              </div>
+            } @else {
+              <div class="error-message">{{ authService.error() }}</div>
+            }
           }
 
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
@@ -103,7 +114,7 @@ import { AuthService } from '../../services/auth-service';
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
     }
 
     .login-card {
@@ -130,6 +141,44 @@ import { AuthService } from '../../services/auth-service';
       margin-bottom: 15px;
       background-color: #ffebee;
       border-radius: 4px;
+    }
+
+    .error-message.no-account-error {
+      background-color: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+    }
+
+    .error-message.no-account-error strong {
+      display: block;
+      color: #ff9800;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .error-message.no-account-error p {
+      margin: 0;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .create-account-prompt {
+      margin-top: 12px !important;
+      padding-top: 12px;
+      border-top: 1px solid #ffe0b2;
+      text-align: center;
+    }
+
+    .create-link {
+      color: #ff9800;
+      font-weight: bold;
+      text-decoration: none;
+      margin-left: 5px;
+    }
+
+    .create-link:hover {
+      text-decoration: underline;
     }
 
     .signup-link {
@@ -169,7 +218,7 @@ export class LoginComponent {
       const { email, password } = this.loginForm.value;
       try {
         await this.authService.login(email, password);
-        this.snackBar.open('Login successful!', 'Close', { duration: 3000 });
+        // Success message is now handled in the auth service
       } catch (error) {
         this.snackBar.open('Login failed. Please try again.', 'Close', {
           duration: 3000,

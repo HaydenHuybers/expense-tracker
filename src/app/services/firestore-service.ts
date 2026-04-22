@@ -1,19 +1,4 @@
-import { Injectable, inject, signal, computed, effect } from '@angular/core';
-import {
-  Firestore,
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  setDoc,
-  getDoc,
-} from '@angular/fire/firestore';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import {
   Transaction,
   Budget,
@@ -25,8 +10,11 @@ import { AuthService } from './auth-service';
 
 @Injectable({ providedIn: 'root' })
 export class FirestoreService {
-  private firestore = inject(Firestore);
   private authService = inject(AuthService);
+  
+  private readonly TRANSACTIONS_KEY = 'expense_tracker_transactions';
+  private readonly BUDGETS_KEY = 'expense_tracker_budgets';
+  private readonly CATEGORIES_KEY = 'expense_tracker_categories';
 
   // Transaction signals
   transactions = signal<Transaction[]>([]);
@@ -128,26 +116,11 @@ export class FirestoreService {
 
   private loadTransactions(userId: string): void {
     try {
-      const transactionsRef = collection(this.firestore, 'transactions');
-      const q = query(
-        transactionsRef,
-        where('userId', '==', userId),
-        orderBy('date', 'desc')
-      );
-
-      onSnapshot(q, (snapshot) => {
-        const loaded = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            date: data['date']?.toDate() || new Date(),
-            createdAt: data['createdAt']?.toDate() || new Date(),
-            updatedAt: data['updatedAt']?.toDate() || new Date(),
-          } as Transaction;
-        });
-        this.transactions.set(loaded);
-      });
+      const allTransactions = this.getAllTransactions();
+      const userTransactions = allTransactions
+        .filter(t => t.userId === userId)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      this.transactions.set(userTransactions);
     } catch (err) {
       this.error.set('Failed to load transactions');
       console.error('Error loading transactions:', err);
@@ -162,14 +135,24 @@ export class FirestoreService {
       const userId = this.authService.currentUser()?.id;
       if (!userId) throw new Error('User not authenticated');
 
-      const docRef = await addDoc(collection(this.firestore, 'transactions'), {
+      await this.delay(300);
+
+      const newTransaction: Transaction = {
+        id: this.generateId(),
         ...transaction,
         userId,
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      };
 
-      return docRef.id;
+      const allTransactions = this.getAllTransactions();
+      allTransactions.push(newTransaction);
+      localStorage.setItem(this.TRANSACTIONS_KEY, JSON.stringify(allTransactions));
+
+      // Update signal with new transaction
+      this.transactions.update(prev => [newTransaction, ...prev]);
+
+      return newTransaction.id;
     } catch (err) {
       this.error.set('Failed to add transaction');
       console.error('Error adding transaction:', err);
@@ -184,11 +167,21 @@ export class FirestoreService {
     this.error.set(null);
 
     try {
-      const docRef = doc(this.firestore, 'transactions', id);
-      await updateDoc(docRef, {
+      await this.delay(300);
+
+      const allTransactions = this.getAllTransactions();
+      const index = allTransactions.findIndex(t => t.id === id);
+      
+      if (index === -1) throw new Error('Transaction not found');
+
+      allTransactions[index] = {
+        ...allTransactions[index],
         ...updates,
         updatedAt: new Date(),
-      });
+      };
+
+      localStorage.setItem(this.TRANSACTIONS_KEY, JSON.stringify(allTransactions));
+      this.loadTransactions(this.authService.currentUser()?.id || '');
     } catch (err) {
       this.error.set('Failed to update transaction');
       console.error('Error updating transaction:', err);
@@ -203,7 +196,13 @@ export class FirestoreService {
     this.error.set(null);
 
     try {
-      await deleteDoc(doc(this.firestore, 'transactions', id));
+      await this.delay(300);
+
+      const allTransactions = this.getAllTransactions();
+      const filtered = allTransactions.filter(t => t.id !== id);
+      localStorage.setItem(this.TRANSACTIONS_KEY, JSON.stringify(filtered));
+      
+      this.transactions.update(prev => prev.filter(t => t.id !== id));
     } catch (err) {
       this.error.set('Failed to delete transaction');
       console.error('Error deleting transaction:', err);
@@ -217,23 +216,9 @@ export class FirestoreService {
 
   private loadCategories(userId: string): void {
     try {
-      const categoriesRef = collection(this.firestore, 'categories');
-      const q = query(
-        categoriesRef,
-        where('userId', '==', userId)
-      );
-
-      onSnapshot(q, (snapshot) => {
-        const loaded = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: data['createdAt']?.toDate() || new Date(),
-          } as Category;
-        });
-        this.categories.set(loaded);
-      });
+      const allCategories = this.getAllCategories();
+      const userCategories = allCategories.filter(c => c.userId === userId);
+      this.categories.set(userCategories);
     } catch (err) {
       console.error('Error loading categories:', err);
     }
@@ -244,15 +229,22 @@ export class FirestoreService {
       const userId = this.authService.currentUser()?.id;
       if (!userId) throw new Error('User not authenticated');
 
-      const docRef = await addDoc(collection(this.firestore, 'categories'), {
+      const newCategory: Category = {
+        id: this.generateId(),
         ...category,
         userId,
         createdAt: new Date(),
-      });
+      };
 
-      return docRef.id;
+      const allCategories = this.getAllCategories();
+      allCategories.push(newCategory);
+      localStorage.setItem(this.CATEGORIES_KEY, JSON.stringify(allCategories));
+
+      this.categories.update(prev => [...prev, newCategory]);
+      return newCategory.id;
     } catch (err) {
       this.error.set('Failed to add category');
+      console.error('Error adding category:', err);
       throw err;
     }
   }
@@ -261,24 +253,9 @@ export class FirestoreService {
 
   private loadBudgets(userId: string): void {
     try {
-      const budgetsRef = collection(this.firestore, 'budgets');
-      const q = query(
-        budgetsRef,
-        where('userId', '==', userId)
-      );
-
-      onSnapshot(q, (snapshot) => {
-        const loaded = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: data['createdAt']?.toDate() || new Date(),
-            updatedAt: data['updatedAt']?.toDate() || new Date(),
-          } as Budget;
-        });
-        this.budgets.set(loaded);
-      });
+      const allBudgets = this.getAllBudgets();
+      const userBudgets = allBudgets.filter(b => b.userId === userId);
+      this.budgets.set(userBudgets);
     } catch (err) {
       console.error('Error loading budgets:', err);
     }
@@ -289,39 +266,112 @@ export class FirestoreService {
       const userId = this.authService.currentUser()?.id;
       if (!userId) throw new Error('User not authenticated');
 
-      const docRef = await addDoc(collection(this.firestore, 'budgets'), {
+      const newBudget: Budget = {
+        id: this.generateId(),
         ...budget,
         userId,
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      };
 
-      return docRef.id;
+      const allBudgets = this.getAllBudgets();
+      allBudgets.push(newBudget);
+      localStorage.setItem(this.BUDGETS_KEY, JSON.stringify(allBudgets));
+
+      this.budgets.update(prev => [...prev, newBudget]);
+      return newBudget.id;
     } catch (err) {
       this.error.set('Failed to add budget');
+      console.error('Error adding budget:', err);
       throw err;
     }
   }
 
   async updateBudget(id: string, updates: Partial<Budget>): Promise<void> {
     try {
-      const docRef = doc(this.firestore, 'budgets', id);
-      await updateDoc(docRef, {
+      const allBudgets = this.getAllBudgets();
+      const index = allBudgets.findIndex(b => b.id === id);
+      
+      if (index === -1) throw new Error('Budget not found');
+
+      allBudgets[index] = {
+        ...allBudgets[index],
         ...updates,
         updatedAt: new Date(),
-      });
+      };
+
+      localStorage.setItem(this.BUDGETS_KEY, JSON.stringify(allBudgets));
+      this.loadBudgets(this.authService.currentUser()?.id || '');
     } catch (err) {
       this.error.set('Failed to update budget');
+      console.error('Error updating budget:', err);
       throw err;
     }
   }
 
   async deleteBudget(id: string): Promise<void> {
     try {
-      await deleteDoc(doc(this.firestore, 'budgets', id));
+      const allBudgets = this.getAllBudgets();
+      const filtered = allBudgets.filter(b => b.id !== id);
+      localStorage.setItem(this.BUDGETS_KEY, JSON.stringify(filtered));
+      
+      this.budgets.update(prev => prev.filter(b => b.id !== id));
     } catch (err) {
       this.error.set('Failed to delete budget');
+      console.error('Error deleting budget:', err);
       throw err;
     }
+  }
+
+  // ==================== UTILITY METHODS ====================
+
+  private getAllTransactions(): Transaction[] {
+    const data = localStorage.getItem(this.TRANSACTIONS_KEY);
+    if (!data) return [];
+    try {
+      return JSON.parse(data).map((t: any) => ({
+        ...t,
+        date: new Date(t.date),
+        createdAt: new Date(t.createdAt),
+        updatedAt: new Date(t.updatedAt),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private getAllBudgets(): Budget[] {
+    const data = localStorage.getItem(this.BUDGETS_KEY);
+    if (!data) return [];
+    try {
+      return JSON.parse(data).map((b: any) => ({
+        ...b,
+        createdAt: new Date(b.createdAt),
+        updatedAt: new Date(b.updatedAt),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private getAllCategories(): Category[] {
+    const data = localStorage.getItem(this.CATEGORIES_KEY);
+    if (!data) return [];
+    try {
+      return JSON.parse(data).map((c: any) => ({
+        ...c,
+        createdAt: new Date(c.createdAt),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private generateId(): string {
+    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

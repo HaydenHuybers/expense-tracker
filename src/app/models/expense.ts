@@ -21,6 +21,7 @@ export interface User {
   displayName: string;
   photoURL?: string;
   budget?: number;
+  password?: string;
   createdAt: Date;
   updatedAt: Date;
 }
