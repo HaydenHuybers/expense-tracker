@@ -1,9 +1,9 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { Expense, ExpenseCategory } from '../models/expense';
+import { Expense, ExpenseCategoryType } from '../models/expense';
 
 @Injectable({ providedIn: 'root' })
 export class ExpenseService {
-  categories = signal<ExpenseCategory[]>([
+  categories = signal<ExpenseCategoryType[]>([
     'Work',
     'Personal',
     'Grocery',
