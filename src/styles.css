@@ -48,6 +48,25 @@ main {
   background-color: white !important;
 }
 
+/* Fix dropdown positioning */
+.mat-mdc-select-panel {
+  position: absolute !important;
+  z-index: 1000 !important;
+}
+
+.cdk-overlay-container {
+  z-index: 1000 !important;
+}
+
+.cdk-overlay-pane {
+  z-index: 1000 !important;
+}
+
+/* Ensure mat-cards don't clip dropdowns */
+mat-card {
+  overflow: visible !important;
+}
+
 .mat-mdc-calendar-body {
   background-color: white !important;
 }

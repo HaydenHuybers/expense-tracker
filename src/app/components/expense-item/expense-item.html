@@ -11,15 +11,26 @@
       </span>
     </div>
 
+    <div class="mb-2">
+      <small class="text-muted">{{ expense().date | date:'MMM d, yyyy' }}</small>
+      <span class="badge ms-2" [class]="expense().type === 'income' ? 'bg-success' : 'bg-danger'">
+        {{ expense().type | titlecase }}
+      </span>
+    </div>
+
     <p
-      class="fs-5 fw-bold"
-      [class.text-danger]="isHighExpense()"
-      [class.text-success]="!isHighExpense()"
+      class="fs-5 fw-bold mb-2"
+      [class.text-danger]="expense().type === 'expense' && isHighExpense()"
+      [class.text-success]="expense().type === 'income'"
     >
-      {{ expense().amount | currency }}
+      {{ expense().type === 'income' ? '+' : '-' }}{{ expense().amount | currency }}
     </p>
 
-    @if (isHighExpense()) {
+    @if (expense().notes) {
+      <p class="text-muted small mb-2">{{ expense().notes }}</p>
+    }
+
+    @if (isHighExpense() && expense().type === 'expense') {
       <p class="text-danger small mb-2"><i class="bi bi-exclamation-triangle-fill"></i> High expense</p>
     }
 

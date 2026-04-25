@@ -262,7 +262,7 @@ export class AddExpenseComponent {
         this.snackBar.open('Transaction added successfully!', 'Close', {
           duration: 3000,
         });
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/expenses']);
       } catch (error) {
         this.snackBar.open('Failed to add transaction. Please try again.', 'Close', {
           duration: 3000,
@@ -272,6 +272,6 @@ export class AddExpenseComponent {
   }
 
   goBack(): void {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/expenses']);
   }
 }

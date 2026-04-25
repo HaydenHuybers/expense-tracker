@@ -1,16 +1,16 @@
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CurrencyPipe } from '@angular/common';
-import { Expense } from '../../models/expense';
+import { CurrencyPipe, DatePipe, TitleCasePipe } from '@angular/common';
+import { Transaction } from '../../models/expense';
 
 @Component({
   selector: 'app-expense-item',
   standalone: true,
-  imports: [RouterLink, CurrencyPipe],
+  imports: [RouterLink, CurrencyPipe, DatePipe, TitleCasePipe],
   templateUrl: './expense-item.html',
 })
 export class ExpenseItemComponent {
-  expense = input.required<Expense>();
+  expense = input.required<Transaction>();
   deleteExpense = output<string>();
 
   onDelete() {
@@ -31,8 +31,8 @@ export class ExpenseItemComponent {
     return map[this.expense().category] ?? 'bg-secondary';
   }
 
-  /** Returns true when the expense is considered high (>= $200) */
+  /** Returns true when the expense is considered high (>= $200) and is an expense */
   isHighExpense(): boolean {
-    return this.expense().amount >= 200;
+    return this.expense().type === 'expense' && this.expense().amount >= 200;
   }
 }
